@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GITGPT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Clash+Display:wght@600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#05060a;
+  --surface:#0c0e15;
+  --surface2:#111420;
+  --surface3:#161923;
+  --border:#1a1f2e;
+  --border2:#222840;
+  --green:#00f5a0;
+  --green2:#00d4a0;
+  --green-glow:rgba(0,245,160,0.15);
+  --red:#ff3b6b;
+  --red-glow:rgba(255,59,107,0.15);
+  --amber:#ffb547;
+  --amber-glow:rgba(255,181,71,0.15);
+  --cyan:#00c8ff;
+  --cyan-glow:rgba(0,200,255,0.12);
+  --purple:#a78bfa;
+  --text1:#f0f4ff;
+  --text2:#8892aa;
+  --text3:#404860;
+  --font-head:'Outfit',sans-serif;
+  --font-mono:'DM Mono',monospace;
+  --r:14px;
+  --r-sm:8px;
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  color:var(--text1);
+  font-family:var(--font-mono);
+  font-size:13px;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* ── ANIMATED BACKGROUND ── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 900px 600px at -10% 0%,rgba(0,200,255,0.05) 0%,transparent 60%),
+    radial-gradient(ellipse 700px 500px at 110% 100%,rgba(0,245,160,0.04) 0%,transparent 60%),
+    radial-gradient(ellipse 500px 400px at 50% 50%,rgba(167,139,250,0.02) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* Grid lines background */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px);
+  background-size:60px 60px;
+  pointer-events:none;z-index:0;
+}
+
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── HEADER ── */
+.header{
+  position:sticky;top:0;z-index:200;
+  background:rgba(5,6,10,0.85);
+  backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+}
+.header-inner{
+  max-width:1280px;margin:0 auto;
+  padding:0 32px;height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.brand{display:flex;align-items:center;gap:16px}
+.brand-hex{
+  width:38px;height:38px;
+  background:linear-gradient(135deg,var(--cyan),var(--green));
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+  animation:hex-pulse 4s ease-in-out infinite;
+  flex-shrink:0;
+}
+@keyframes hex-pulse{
+  0%,100%{filter:drop-shadow(0 0 8px rgba(0,200,255,0.5))}
+  50%{filter:drop-shadow(0 0 20px rgba(0,200,255,0.9))}
+}
+.brand-text{}
+.brand-name{
+  font-family:var(--font-head);
+  font-size:17px;font-weight:700;
+  letter-spacing:0.04em;
+  background:linear-gradient(135deg,var(--text1),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.brand-tagline{font-size:10px;color:var(--text3);letter-spacing:0.15em;margin-top:1px}
+
+.header-right{display:flex;align-items:center;gap:20px}
+.status-pill{
+  display:flex;align-items:center;gap:7px;
+  padding:6px 14px;
+  border-radius:100px;
+  border:1px solid var(--border2);
+  background:var(--surface2);
+  font-size:10px;letter-spacing:0.12em;color:var(--text2);
+}
+.status-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--text3);
+  transition:background 0.3s,box-shadow 0.3s;
+}
+.status-dot.idle{background:var(--text3)}
+.status-dot.running{
+  background:var(--amber);
+  box-shadow:0 0 8px var(--amber);
+  animation:pulse-dot 0.8s ease-in-out infinite;
+}
+.status-dot.done{background:var(--green);box-shadow:0 0 8px var(--green)}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* ── MAIN ── */
+.main{
+  max-width:1280px;margin:0 auto;width:100%;
+  padding:40px 32px 80px;
+  flex:1;
+  display:flex;flex-direction:column;gap:28px;
+}
+
+/* ── CARDS ── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:28px 32px;
+  position:relative;overflow:hidden;
+  transition:border-color 0.3s;
+}
+.card::before{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 0%,var(--border2) 30%,var(--border2) 70%,transparent 100%);
+}
+.card-label{
+  font-size:10px;font-weight:500;
+  letter-spacing:0.25em;
+  color:var(--cyan);
+  text-transform:uppercase;
+  margin-bottom:6px;
+  display:flex;align-items:center;gap:8px;
+}
+.card-label::before{
+  content:'';display:block;
+  width:16px;height:1px;
+  background:var(--cyan);opacity:0.5;
+}
+.card-title{
+  font-family:var(--font-head);
+  font-size:24px;font-weight:700;
+  color:var(--text1);
+  margin-bottom:24px;
+  letter-spacing:-0.01em;
+}
+
+/* ── INPUT SECTION ── */
+.input-card{
+  background:linear-gradient(135deg,var(--surface) 0%,#0d1020 100%);
+  border-color:var(--border2);
+}
+.input-header{
+  display:flex;align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:28px;
+}
+.input-header-left{display:flex;flex-direction:column}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  margin-bottom:20px;
+}
+.field-span{grid-column:1/-1}
+.field{}
+.field-label{
+  display:block;
+  font-size:10px;font-weight:500;
+  letter-spacing:0.18em;
+  color:var(--text3);
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.input-wrap{position:relative}
+.field-icon{
+  position:absolute;left:14px;top:50%;
+  transform:translateY(-50%);
+  color:var(--text3);font-size:14px;
+  pointer-events:none;transition:color 0.2s;
+}
+.field-input{
+  width:100%;
+  background:rgba(5,6,10,0.8);
+  border:1px solid var(--border2);
+  border-radius:var(--r-sm);
+  padding:13px 14px 13px 42px;
+  font-family:var(--font-mono);
+  font-size:13px;color:var(--text1);
+  outline:none;
+  transition:border-color 0.25s,box-shadow 0.25s,background 0.25s;
+}
+.field-input::placeholder{color:var(--text3)}
+.field-input:focus{
+  border-color:var(--cyan);
+  box-shadow:0 0 0 3px rgba(0,200,255,0.08),inset 0 1px 0 rgba(0,200,255,0.05);
+  background:rgba(0,200,255,0.02);
+}
+.field-input:focus~.field-icon,.input-wrap:focus-within .field-icon{color:var(--cyan)}
+.field-error-msg{font-size:11px;color:var(--red);margin-top:5px;display:none}
+.field.err .field-input{border-color:var(--red)}
+.field.err .field-error-msg{display:block}
+
+.btn-run{
+  width:100%;padding:15px;
+  background:linear-gradient(135deg,var(--cyan),var(--green2));
+  border:none;border-radius:var(--r-sm);
+  font-family:var(--font-mono);
+  font-size:13px;font-weight:500;
+  letter-spacing:0.12em;
+  color:#04080f;
+  cursor:pointer;
+  position:relative;overflow:hidden;
+  transition:transform 0.15s,box-shadow 0.25s,opacity 0.2s;
+  box-shadow:0 4px 24px rgba(0,200,255,0.25);
+}
+.btn-run::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+  opacity:0;transition:opacity 0.2s;
+}
+.btn-run:hover:not(:disabled)::before{opacity:1}
+.btn-run:hover:not(:disabled){
+  transform:translateY(-2px);
+  box-shadow:0 8px 32px rgba(0,200,255,0.4);
+}
+.btn-run:active:not(:disabled){transform:translateY(0)}
+.btn-run:disabled{opacity:0.6;cursor:not-allowed}
+.btn-run-inner{display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-spinner{
+  width:14px;height:14px;
+  border:2px solid rgba(4,8,15,0.3);
+  border-top-color:#04080f;
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+  display:none;
+}
+.running .btn-spinner{display:block}
+.running .btn-text::before{content:'Running Agent'}
+.btn-text::before{content:'▶  Run Agent'}
+
+.btn-reset{
+  display:none;
+  background:transparent;
+  border:1px solid var(--border2);
+  border-radius:var(--r-sm);
+  color:var(--text2);
+  font-family:var(--font-mono);
+  font-size:11px;padding:8px 16px;
+  cursor:pointer;
+  transition:border-color 0.2s,color 0.2s;
+  letter-spacing:0.08em;
+}
+.btn-reset:hover{border-color:var(--border2);color:var(--text1)}
+.show-reset .btn-reset{display:block}
+
+/* ── LOADING OVERLAY ── */
+.loading-overlay{
+  display:none;
+  position:fixed;inset:0;z-index:500;
+  background:rgba(5,6,10,0.92);
+  backdrop-filter:blur(20px);
+  align-items:center;justify-content:center;
+}
+.loading-overlay.active{display:flex}
+.loading-box{
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  padding:48px 56px;
+  display:flex;flex-direction:column;align-items:center;gap:28px;
+  box-shadow:0 32px 80px rgba(0,0,0,0.6);
+  min-width:360px;
+}
+.loader-rings{position:relative;width:72px;height:72px}
+.ring{
+  position:absolute;inset:0;
+  border-radius:50%;
+  border:2px solid transparent;
+}
+.ring1{
+  border-top-color:var(--cyan);
+  animation:spin 1.2s linear infinite;
+}
+.ring2{
+  inset:8px;
+  border-right-color:var(--green);
+  animation:spin 0.9s linear infinite reverse;
+}
+.ring3{
+  inset:18px;
+  border-bottom-color:var(--purple);
+  animation:spin 0.6s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.loading-title{
+  font-family:var(--font-head);
+  font-size:13px;font-weight:600;
+  letter-spacing:0.2em;color:var(--cyan);
+}
+.loading-steps{display:flex;flex-direction:column;gap:10px;width:100%}
+.lstep{
+  display:flex;align-items:center;gap:12px;
+  opacity:0.2;transition:opacity 0.4s;
+}
+.lstep.active{opacity:1}
+.lstep.done{opacity:0.5}
+.lstep-dot{
+  width:6px;height:6px;
+  border-radius:50%;background:var(--text3);
+  flex-shrink:0;transition:background 0.3s,box-shadow 0.3s;
+}
+.lstep.active .lstep-dot{
+  background:var(--cyan);
+  box-shadow:0 0 8px var(--cyan);
+  animation:pulse-dot 0.7s ease-in-out infinite;
+}
+.lstep.done .lstep-dot{background:var(--green)}
+.lstep-text{font-size:12px;color:var(--text2)}
+.lstep.active .lstep-text{color:var(--text1)}
+
+/* ── RESULTS LAYOUT ── */
+.results{display:none;flex-direction:column;gap:28px}
+.results.visible{display:flex;animation:fadeUp 0.6s ease both}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+
+/* ── RUN SUMMARY ── */
+.summary-repo-wrap{
+  background:rgba(0,200,255,0.04);
+  border:1px solid rgba(0,200,255,0.12);
+  border-radius:var(--r-sm);
+  padding:12px 16px;
+  margin-bottom:20px;
+}
+.summary-repo-label{font-size:9px;letter-spacing:0.2em;color:var(--text3);margin-bottom:3px}
+.summary-repo-url{
+  color:var(--cyan);font-size:12px;
+  word-break:break-all;text-decoration:none;
+}
+.summary-repo-url:hover{text-decoration:underline}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-box{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:14px 16px;
+  transition:border-color 0.2s,background 0.2s;
+}
+.stat-box:hover{border-color:var(--border2);background:var(--surface3)}
+.stat-box.hi{
+  background:rgba(0,200,255,0.05);
+  border-color:rgba(0,200,255,0.2);
+}
+.stat-key{font-size:9px;letter-spacing:0.18em;color:var(--text3);text-transform:uppercase;margin-bottom:5px}
+.stat-val{font-size:15px;color:var(--text1);font-weight:500}
+
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-weight:500;letter-spacing:0.1em;
+  padding:5px 12px;border-radius:100px;
+}
+.badge-pass{background:var(--green-glow);color:var(--green);border:1px solid rgba(0,245,160,0.3)}
+.badge-fail{background:var(--red-glow);color:var(--red);border:1px solid rgba(255,59,107,0.3)}
+.badge-amber{background:var(--amber-glow);color:var(--amber);border:1px solid rgba(255,181,71,0.3)}
+
+/* ── SCORE PANEL ── */
+.score-display{
+  display:flex;flex-direction:column;align-items:center;
+  padding:24px 0 28px;
+}
+.score-num{
+  font-family:var(--font-head);
+  font-size:88px;font-weight:700;
+  line-height:1;letter-spacing:-4px;
+  background:linear-gradient(135deg,var(--green),var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.score-tag{font-size:10px;letter-spacing:0.25em;color:var(--text3);margin-top:4px}
+
+.score-bar-wrap{
+  height:4px;background:var(--border2);
+  border-radius:100px;overflow:hidden;margin-bottom:24px;
+}
+.score-bar{
+  height:100%;
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  border-radius:100px;
+  width:0;transition:width 1.4s cubic-bezier(0.16,1,0.3,1);
+  box-shadow:0 0 12px rgba(0,245,160,0.5);
+}
+
+.score-rows{display:flex;flex-direction:column;gap:2px}
+.score-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 14px;border-radius:var(--r-sm);
+  transition:background 0.15s;
+}
+.score-row:hover{background:var(--surface2)}
+.score-row.divider{border-top:1px solid var(--border);margin-top:4px;padding-top:14px}
+.score-rkey{font-size:13px;color:var(--text2)}
+.score-rval{font-family:var(--font-head);font-size:18px;font-weight:600}
+.pos{color:var(--green)}.neg{color:var(--red)}.neut{color:var(--text2)}
+
+/* ── FIX TABLE ── */
+.filter-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.chip{
+  font-family:var(--font-mono);font-size:10px;
+  font-weight:500;letter-spacing:0.1em;
+  padding:5px 14px;border-radius:100px;
+  border:1px solid var(--border2);background:transparent;
+  color:var(--text2);cursor:pointer;
+  transition:all 0.2s;
+}
+.chip:hover{border-color:var(--border2);color:var(--text1);background:var(--surface2)}
+.chip.on{
+  border-color:var(--cyan);color:var(--cyan);
+  background:rgba(0,200,255,0.08);
+}
+
+.tbl-wrap{
+  overflow-x:auto;
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+}
+table{width:100%;border-collapse:collapse;min-width:680px}
+thead tr{background:var(--surface2)}
+th{
+  padding:12px 16px;text-align:left;
+  font-size:9px;font-weight:500;
+  letter-spacing:0.2em;color:var(--text3);
+  text-transform:uppercase;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+tbody tr{
+  border-bottom:1px solid var(--border);
+  transition:background 0.15s;
+}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+td{padding:13px 16px;vertical-align:middle}
+
+.file-cell{color:var(--cyan);font-size:12px;white-space:nowrap}
+.line-cell{color:var(--text3);font-size:12px}
+.msg-cell{color:var(--text2);font-size:11px;max-width:260px}
+
+.type-tag{
+  font-size:9px;font-weight:500;letter-spacing:0.08em;
+  padding:3px 9px;border-radius:4px;
+  border:1px solid;white-space:nowrap;
+  display:inline-block;
+}
+.t-LINTING{color:#5b9bd5;border-color:rgba(91,155,213,0.4);background:rgba(91,155,213,0.08)}
+.t-SYNTAX{color:#e9a83a;border-color:rgba(233,168,58,0.4);background:rgba(233,168,58,0.08)}
+.t-LOGIC{color:#d47fa0;border-color:rgba(212,127,160,0.4);background:rgba(212,127,160,0.08)}
+.t-TYPE_ERROR{color:#7ec87e;border-color:rgba(126,200,126,0.4);background:rgba(126,200,126,0.08)}
+.t-IMPORT{color:#5ecfcf;border-color:rgba(94,207,207,0.4);background:rgba(94,207,207,0.08)}
+.t-INDENTATION{color:#b49fea;border-color:rgba(180,159,234,0.4);background:rgba(180,159,234,0.08)}
+
+.pill-pass{background:var(--green-glow);color:var(--green);border:1px solid rgba(0,245,160,0.25);font-size:10px;padding:4px 10px;border-radius:100px;white-space:nowrap}
+.pill-fail{background:var(--red-glow);color:var(--red);border:1px solid rgba(255,59,107,0.25);font-size:10px;padding:4px 10px;border-radius:100px;white-space:nowrap}
+
+/* ── TIMELINE ── */
+.timeline{display:flex;flex-direction:column}
+.tl-item{display:flex;gap:20px;align-items:flex-start}
+.tl-left{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:36px;padding-top:4px}
+.tl-dot{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:600;flex-shrink:0;z-index:1;
+}
+.tl-dot.pass{
+  background:var(--green-glow);color:var(--green);
+  border:2px solid rgba(0,245,160,0.35);
+  box-shadow:0 0 16px rgba(0,245,160,0.2);
+}
+.tl-dot.fail{
+  background:var(--red-glow);color:var(--red);
+  border:2px solid rgba(255,59,107,0.35);
+}
+.tl-line{width:2px;flex:1;min-height:20px;background:var(--border);margin:4px 0}
+.tl-item:last-child .tl-line{display:none}
+.tl-body{flex:1;padding-bottom:20px}
+.tl-item:last-child .tl-body{padding-bottom:0}
+.tl-card{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:16px 18px;
+  transition:border-color 0.2s;
+}
+.tl-card.pass{border-color:rgba(0,245,160,0.15);background:rgba(0,245,160,0.03)}
+.tl-card.fail{border-color:rgba(255,59,107,0.15);background:rgba(255,59,107,0.03)}
+.tl-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.tl-iter{font-size:11px;color:var(--text3)}
+.tl-time{font-size:11px;color:var(--text2)}
+
+/* ── EMPTY STATE ── */
+.empty{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:16px;padding:80px 24px;text-align:center;
+}
+.empty-glyph{
+  font-size:52px;opacity:0.15;
+  animation:float 4s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.empty-head{font-family:var(--font-head);font-size:22px;font-weight:600;color:var(--text2)}
+.empty-body{font-size:13px;color:var(--text3);max-width:380px;line-height:1.8}
+
+/* ── FOOTER ── */
+.footer{
+  border-top:1px solid var(--border);
+  padding:20px 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  max-width:1280px;margin:0 auto;width:100%;
+  font-size:10px;letter-spacing:0.15em;color:var(--text3);
+}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .two-col{grid-template-columns:1fr}
+  .main{padding:24px 20px 60px}
+  .header-inner{padding:0 20px}
+}
+@media(max-width:640px){
+  .form-grid{grid-template-columns:1fr}
+  .field-span{grid-column:1}
+  .score-num{font-size:64px}
+  .loading-box{min-width:280px;padding:36px 28px}
+  .brand-tagline{display:none}
+  .footer{flex-direction:column;gap:6px;text-align:center}
+  .header-right .status-pill span:last-child{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-hex">⬡</div>
+      <div class="brand-text">
+        <div class="brand-name">GITGPT</div>
+        <div class="brand-tagline">AUTONOMOUS CI/CD INTELLIGENCE</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill">
+        <div class="status-dot idle" id="statusDot"></div>
+        <span id="statusText">STANDBY</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="loader-rings">
+      <div class="ring ring1"></div>
+      <div class="ring ring2"></div>
+      <div class="ring ring3"></div>
+    </div>
+    <div class="loading-title">AGENT EXECUTING</div>
+    <div class="loading-steps" id="loadingSteps">
+      <div class="lstep" data-step="0"><div class="lstep-dot"></div><span class="lstep-text">Cloning repository…</span></div>
+      <div class="lstep" data-step="1"><div class="lstep-dot"></div><span class="lstep-text">Scanning codebase for failures…</span></div>
+      <div class="lstep" data-step="2"><div class="lstep-dot"></div><span class="lstep-text">Running AI diagnostics…</span></div>
+      <div class="lstep" data-step="3"><div class="lstep-dot"></div><span class="lstep-text">Applying intelligent fixes…</span></div>
+      <div class="lstep" data-step="4"><div class="lstep-dot"></div><span class="lstep-text">Pushing commits to branch…</span></div>
+      <div class="lstep" data-step="5"><div class="lstep-dot"></div><span class="lstep-text">Executing CI/CD pipeline…</span></div>
+      <div class="lstep" data-step="6"><div class="lstep-dot"></div><span class="lstep-text">Generating final report…</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- INPUT CARD -->
+  <div class="card input-card" id="inputCard">
+    <div class="input-header">
+      <div class="input-header-left">
+        <div class="card-label">Agent Control</div>
+        <div class="card-title" style="margin-bottom:0">Deploy Autonomous Agent</div>
+      </div>
+      <button class="btn-reset" id="btnReset" onclick="resetDash()">↺ New Run</button>
+    </div>
+
+    <div style="margin-top:24px">
+      <form id="agentForm" onsubmit="handleSubmit(event)">
+        <div class="form-grid">
+          <div class="field field-span" id="f-repo">
+            <label class="field-label">GitHub Repository URL</label>
+            <div class="input-wrap">
+              <span class="field-icon">⌥</span>
+              <input class="field-input" id="inp-repo" type="url" placeholder="https://github.com/org/repository"/>
+            </div>
+            <div class="field-error-msg">Please enter a valid repository URL</div>
+          </div>
+          <div class="field" id="f-team">
+            <label class="field-label">Team Name</label>
+            <div class="input-wrap">
+              <span class="field-icon">◈</span>
+              <input class="field-input" id="inp-team" type="text" placeholder="e.g. RIFT ORGANISERS"/>
+            </div>
+            <div class="field-error-msg">Team name is required</div>
+          </div>
+          <div class="field" id="f-leader">
+            <label class="field-label">Team Leader</label>
+            <div class="input-wrap">
+              <span class="field-icon">◆</span>
+              <input class="field-input" id="inp-leader" type="text" placeholder="e.g. Saiyam Kumar"/>
+            </div>
+            <div class="field-error-msg">Leader name is required</div>
+          </div>
+        </div>
+        <button class="btn-run" type="submit" id="btnRun">
+          <div class="btn-run-inner">
+            <div class="btn-spinner"></div>
+            <span class="btn-text"></span>
+          </div>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE -->
+  <div class="empty" id="emptyState">
+    <div class="empty-glyph">◎</div>
+    <div class="empty-head">No agent run yet</div>
+    <div class="empty-body">Enter your GitHub repository details above and click <strong style="color:var(--text2)">Run Agent</strong> to launch the autonomous DevOps pipeline.</div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results" id="results">
+
+    <div class="two-col">
+      <!-- RUN SUMMARY -->
+      <div class="card">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div class="card-label">Execution Report</div>
+            <div class="card-title" style="margin-bottom:16px">Run Summary</div>
+          </div>
+          <span id="summaryBadge" class="badge"></span>
+        </div>
+
+        <div class="summary-repo-wrap">
+          <div class="summary-repo-label">REPOSITORY</div>
+          <a class="summary-repo-url" id="summaryRepo" href="#" target="_blank"></a>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-key">Team</div><div class="stat-val" id="sTeam"></div></div>
+          <div class="stat-box"><div class="stat-key">Leader</div><div class="stat-val" id="sLeader"></div></div>
+          <div class="stat-box hi"><div class="stat-key">Branch</div><div class="stat-val" id="sBranch" style="font-size:12px"></div></div>
+          <div class="stat-box"><div class="stat-key">Exec Time</div><div class="stat-val" id="sTime"></div></div>
+          <div class="stat-box"><div class="stat-key">Failures</div><div class="stat-val" id="sFailures"></div></div>
+          <div class="stat-box hi"><div class="stat-key">Fixes</div><div class="stat-val" id="sFixes"></div></div>
+        </div>
+      </div>
+
+      <!-- SCORE PANEL -->
+      <div class="card">
+        <div class="card-label">Performance Score</div>
+        <div class="card-title" style="margin-bottom:0">Score Breakdown</div>
+
+        <div class="score-display">
+          <div class="score-num" id="scoreNum">0</div>
+          <div class="score-tag">FINAL SCORE</div>
+        </div>
+
+        <div class="score-bar-wrap">
+          <div class="score-bar" id="scoreBar"></div>
+        </div>
+
+        <div class="score-rows">
+          <div class="score-row">
+            <span class="score-rkey">Base Score</span>
+            <span class="score-rval neut">100</span>
+          </div>
+          <div class="score-row">
+            <span class="score-rkey">Speed Bonus</span>
+            <span class="score-rval pos" id="scoreBonus"></span>
+          </div>
+          <div class="score-row">
+            <span class="score-rkey">Efficiency Penalty</span>
+            <span class="score-rval neg" id="scorePenalty"></span>
+          </div>
+          <div class="score-row divider">
+            <span class="score-rkey" style="font-weight:600;color:var(--text1)">Total Score</span>
+            <span class="score-rval" id="scoreTotal" style="font-size:24px"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIX TABLE -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="card-label">Diagnostics</div>
+        <span id="fixCount" style="font-size:11px;color:var(--text2)"></span>
+      </div>
+      <div class="card-title" style="margin-bottom:16px">Fixes Applied</div>
+
+      <div class="filter-row" id="filterRow"></div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>File</th><th>Bug Type</th><th>Line</th><th>Commit Message</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="fixTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="card-label">CI/CD Pipeline</div>
+        <span id="tlCount" style="font-size:11px;color:var(--text2)"></span>
+      </div>
+      <div class="card-title" style="margin-bottom:24px">CI/CD Timeline</div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer" style="max-width:100%">
+  <span>GITGPT</span>
+  <span>Powered by Autonomous AI</span>
+</footer>
+
+</div>
+
+<script>
+const MOCK = {
+  summary:{
+    repo:'https://github.com/sample/devops-app',
+    team:'RIFT ORGANISERS',
+    leader:'Saiyam Kumar',
+    branch:'RIFT_SAIYAM_AI_Fix',
+    failures:8,fixes:6,status:'PASSED',time:'4m 12s'
+  },
+  score:{speedBonus:10,penalty:4,total:106},
+  fixes:[
+    {file:'src/auth.js',type:'SYNTAX',line:24,message:'[AI-AGENT] Fixed missing closing bracket',status:'Fixed'},
+    {file:'api/users.js',type:'LOGIC',line:87,message:'[AI-AGENT] Added null reference guard',status:'Fixed'},
+    {file:'utils/parser.js',type:'IMPORT',line:3,message:'[AI-AGENT] Resolved missing module import',status:'Fixed'},
+    {file:'components/Form.jsx',type:'TYPE_ERROR',line:52,message:'[AI-AGENT] Corrected prop type mismatch',status:'Fixed'},
+    {file:'server/routes.js',type:'LINTING',line:119,message:'[AI-AGENT] Removed unused variable declaration',status:'Fixed'},
+    {file:'db/schema.sql',type:'INDENTATION',line:44,message:'[AI-AGENT] Normalized mixed tab/space indent',status:'Fixed'},
+    {file:'middleware/auth.js',type:'LOGIC',line:31,message:'[AI-AGENT] Attempted async/await fix',status:'Failed'},
+    {file:'config/env.js',type:'SYNTAX',line:8,message:'[AI-AGENT] Attempted template literal repair',status:'Failed'},
+  ],
+  timeline:[
+    {status:'FAILED',iteration:'1/5',timestamp:'12:00 PM'},
+    {status:'FAILED',iteration:'2/5',timestamp:'12:01 PM'},
+    {status:'FAILED',iteration:'3/5',timestamp:'12:02 PM'},
+    {status:'PASSED',iteration:'4/5',timestamp:'12:04 PM'},
+    {status:'PASSED',iteration:'5/5',timestamp:'12:06 PM'},
+  ]
+}
+
+let currentFilter = 'ALL'
+let currentData = null
+let loadingTimer = null
+
+function setStatus(state) {
+  const dot = document.getElementById('statusDot')
+  const txt = document.getElementById('statusText')
+  dot.className = 'status-dot ' + state
+  txt.textContent = state === 'idle' ? 'STANDBY' : state === 'running' ? 'RUNNING' : 'COMPLETE'
+}
+
+function validate() {
+  const repo = document.getElementById('inp-repo').value.trim()
+  const team = document.getElementById('inp-team').value.trim()
+  const leader = document.getElementById('inp-leader').value.trim()
+  let ok = true
+  const fRepo = document.getElementById('f-repo')
+  const fTeam = document.getElementById('f-team')
+  const fLeader = document.getElementById('f-leader')
+  fRepo.classList.remove('err'); fTeam.classList.remove('err'); fLeader.classList.remove('err')
+  if (!repo || !repo.startsWith('http')) { fRepo.classList.add('err'); ok = false }
+  if (!team) { fTeam.classList.add('err'); ok = false }
+  if (!leader) { fLeader.classList.add('err'); ok = false }
+  return ok ? {repo, team, leader} : null
+}
+
+async function handleSubmit(e) {
+  e.preventDefault()
+  const vals = validate()
+  if (!vals) return
+  startLoading(vals)
+}
+
+function startLoading(vals) {
+  setStatus('running')
+  document.getElementById('btnRun').disabled = true
+  document.getElementById('btnRun').classList.add('running')
+  document.getElementById('loadingOverlay').classList.add('active')
+  document.getElementById('results').classList.remove('visible')
+  document.getElementById('emptyState').style.display = 'none'
+
+  const steps = document.querySelectorAll('.lstep')
+  steps.forEach(s => s.className = 'lstep')
+  let cur = 0
+  steps[0].classList.add('active')
+
+  loadingTimer = setInterval(() => {
+    if (cur < steps.length - 1) {
+      steps[cur].classList.remove('active'); steps[cur].classList.add('done')
+      cur++; steps[cur].classList.add('active')
+    }
+  }, 280)
+
+  // Try real API, fall back to mock
+  setTimeout(async () => {
+    let data
+    try {
+      const res = await fetch('http://localhost:5000/api/run-agent', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({repoUrl:vals.repo, teamName:vals.team, leaderName:vals.leader}),
+        signal: AbortSignal.timeout(5000)
+      })
+      if (!res.ok) throw new Error()
+      data = await res.json()
+    } catch {
+      data = {
+        ...MOCK,
+        summary:{...MOCK.summary, repo:vals.repo, team:vals.team, leader:vals.leader}
+      }
+    }
+    finishLoading(data)
+  }, 2400)
+}
+
+function finishLoading(data) {
+  clearInterval(loadingTimer)
+  currentData = data
+  document.getElementById('loadingOverlay').classList.remove('active')
+  document.getElementById('btnRun').disabled = false
+  document.getElementById('btnRun').classList.remove('running')
+  document.getElementById('inputCard').classList.add('show-reset')
+  setStatus('done')
+  renderAll(data)
+  document.getElementById('results').classList.add('visible')
+}
+
+function resetDash() {
+  currentData = null; currentFilter = 'ALL'
+  setStatus('idle')
+  document.getElementById('results').classList.remove('visible')
+  document.getElementById('emptyState').style.display = 'flex'
+  document.getElementById('inputCard').classList.remove('show-reset')
+  document.getElementById('inp-repo').value = ''
+  document.getElementById('inp-team').value = ''
+  document.getElementById('inp-leader').value = ''
+  ['f-repo','f-team','f-leader'].forEach(id => document.getElementById(id).classList.remove('err'))
+}
+
+function renderAll(d) {
+  renderSummary(d.summary)
+  renderScore(d.score)
+  renderFixes(d.fixes)
+  renderTimeline(d.timeline)
+}
+
+function renderSummary(s) {
+  document.getElementById('summaryRepo').textContent = s.repo
+  document.getElementById('summaryRepo').href = s.repo
+  document.getElementById('sTeam').textContent = s.team
+  document.getElementById('sLeader').textContent = s.leader
+  document.getElementById('sBranch').textContent = s.branch
+  document.getElementById('sTime').textContent = s.time
+  document.getElementById('sFailures').textContent = s.failures
+  document.getElementById('sFixes').textContent = s.fixes
+  const badge = document.getElementById('summaryBadge')
+  badge.className = 'badge ' + (s.status === 'PASSED' ? 'badge-pass' : 'badge-fail')
+  badge.textContent = s.status === 'PASSED' ? '✓ PASSED' : '✗ FAILED'
+}
+
+function renderScore(sc) {
+  document.getElementById('scoreBonus').textContent = '+' + sc.speedBonus
+  document.getElementById('scorePenalty').textContent = '−' + sc.penalty
+  document.getElementById('scoreTotal').textContent = sc.total
+  const color = sc.total >= 100 ? 'var(--green)' : sc.total >= 80 ? 'var(--amber)' : 'var(--red)'
+  document.getElementById('scoreTotal').style.color = color
+
+  // Animate number
+  let cur = 0, target = sc.total, dur = 1400, start = Date.now()
+  function tick() {
+    const p = Math.min((Date.now()-start)/dur, 1)
+    const e = 1 - Math.pow(1-p, 3)
+    document.getElementById('scoreNum').textContent = Math.round(e * target)
+    if (p < 1) requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+
+  // Bar
+  setTimeout(() => {
+    document.getElementById('scoreBar').style.width = Math.min((sc.total/120)*100, 100) + '%'
+    document.getElementById('scoreBar').style.background =
+      sc.total >= 100 ? 'linear-gradient(90deg,var(--green),var(--cyan))' :
+      sc.total >= 80 ? 'linear-gradient(90deg,var(--amber),#ffd580)' :
+      'linear-gradient(90deg,var(--red),#ff7090)'
+  }, 100)
+}
+
+function renderFixes(fixes) {
+  currentFilter = 'ALL'
+  const types = ['ALL', ...new Set(fixes.map(f => f.type))]
+  const row = document.getElementById('filterRow')
+  row.innerHTML = types.map(t =>
+    `<button class="chip ${t==='ALL'?'on':''}" onclick="setFilter('${t}',this)">${t}</button>`
+  ).join('')
+  const passed = fixes.filter(f => f.status === 'Fixed').length
+  document.getElementById('fixCount').textContent = `${passed}/${fixes.length} resolved`
+  drawFixRows(fixes)
+}
+
+function setFilter(type, btn) {
+  currentFilter = type
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'))
+  btn.classList.add('on')
+  const fixes = type === 'ALL' ? currentData.fixes : currentData.fixes.filter(f => f.type === type)
+  drawFixRows(fixes)
+}
+
+function drawFixRows(fixes) {
+  document.getElementById('fixTbody').innerHTML = fixes.map(f => `
+    <tr>
+      <td class="file-cell">${f.file}</td>
+      <td><span class="type-tag t-${f.type}">${f.type}</span></td>
+      <td class="line-cell">:${f.line}</td>
+      <td class="msg-cell">${f.message}</td>
+      <td><span class="${f.status==='Fixed'?'pill-pass':'pill-fail'}">${f.status==='Fixed'?'✓ Fixed':'✗ Failed'}</span></td>
+    </tr>`).join('')
+}
+
+function renderTimeline(tl) {
+  const passed = tl.filter(t => t.status === 'PASSED').length
+  document.getElementById('tlCount').textContent = `${passed} passed · ${tl.length - passed} failed`
+  document.getElementById('timeline').innerHTML = tl.map((run, i) => {
+    const p = run.status === 'PASSED'
+    return `
+    <div class="tl-item">
+      <div class="tl-left">
+        <div class="tl-dot ${p?'pass':'fail'}">${p?'✓':'✗'}</div>
+        ${i < tl.length-1 ? '<div class="tl-line"></div>' : ''}
+      </div>
+      <div class="tl-body">
+        <div class="tl-card ${p?'pass':'fail'}">
+          <div class="tl-top">
+            <span class="badge ${p?'badge-pass':'badge-fail'}">${run.status}</span>
+            <span class="tl-iter">Iteration ${run.iteration}</span>
+          </div>
+          <div class="tl-time">${run.timestamp}</div>
+        </div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+// Init
+setStatus('idle')
+</script>
+</body>
+</html>
